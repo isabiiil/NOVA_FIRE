@@ -16,7 +16,7 @@ app.secret_key = "HELLO"
 SPOTIFY_GET_CURRENT_TRACK_URL = 'https://api.spotify.com/v1/me/player/currently-playing'
 SPOTIFY_GET_AUDIO_FEATURES = 'https://api.spotify.com/v1/audio-features/'
 SPOTIFY_GET_SIMILAR_SONGS = 'https://api.spotify.com/v1/recommendations'
-SPOTIFY_ACCESS_TOKEN = 'BQCzxOjda5PCqGL02wkyRlJ4war2zTRE4BTf2uPRUCRu3nwNBvYdpritlIbCgCW9r5L82p-Anpaa7ldGj8QzvaZHrW0ZFya7yYxilEopYGKDOzifJb2GfcZZoyqgKyIUtD2-KYGwVvTJZ-NQiP2b2iCFS6N9q2Ua3-Wnfa7UonPwnzvN-ceO0c-Mh6U2vW0ZecK1kVwCvUyQ7IQny6sPzHcDlQUu1iCWUL0PXjm01SmumVfkofeGYMxGGpSfRxntyfI7Q08geuJM2JKWdwtiOg'
+SPOTIFY_ACCESS_TOKEN = 'BQAt1dKJzyOxfnb6VmprNozQwx5uWCtphszWunlj8TC1_LhJ71T-TSIAgkOUdU4AWtFvsT9dIsfXmahdB_g70hSeqhlAwYRXT6hPL6LpOJa9-G_5gbNwwucKVZ1HJns8Jy7e5FIps3-g5Okyzn-L3BfIi1kPz97Vkwld_5LHBcjKI0GFCiFjLAuh-QpnMnVu4nSm7VPlrV7Twby_AsmgA29KeapCXtdrKQ4Z4w5j6QlokglmR3ZJqtaK_4kacBOLJhoAFaOLX6EXdTSYz6RTaA'
 
 # song = RealtimeEmotion(songID=['1TKYPzH66GwsqyJFKFkBHQ', '4iMO20EPodreIaEl8qW66y'])
 
@@ -26,6 +26,7 @@ song = '1TKYPzH66GwsqyJFKFkBHQ'
 #     response = requests.get(
 #         SPOTIFY_GET_CURRENT_TRACK_URL,
 #         headers={
+#             "Content-Type": "application/json",
 #             "Authorization": f"Bearer {access_token}"
 #         }
 #     )
@@ -52,53 +53,53 @@ def get_audio_features(access_token, song):
   response2 = requests.get(
     SPOTIFY_GET_AUDIO_FEATURES + song,
     headers = {
+      "Content-Type": "application/json",
       "Authorization": f"Bearer {access_token}"
     }   
   )
   resp2_json = response2.json()
 
-  track_danceability = resp2_json['danceability']
-  track_energy = resp2_json['energy']
-  track_key = resp2_json['key']
-  track_valence = resp2_json['valence']
-  track_tempo = resp2_json['tempo']
-  
   current_audio_features = {
-    "danceability": track_danceability,
-    "energy": track_energy,
-    "key": track_key,
-    "valence": track_valence,
-    "tempo": track_tempo,
+    "danceability": resp2_json['danceability'],
+    "energy": resp2_json['energy'],
+    "key": resp2_json['key'],
+    "valence": resp2_json['valence'],
+    "tempo": resp2_json['tempo'],
   }
   
   return current_audio_features
 
 def similar_song(access_token, song, current_audio_features):
+  dance = current_audio_features['danceability']
+  energy = current_audio_features['energy']
+  key = current_audio_features['key']
+  valence = current_audio_features['valence']
+  tempo = current_audio_features['tempo']
+
+  url = f"https://api.spotify.com/v1/recommendations?seed_tracks={song}&limit=5&target_danceability={dance}&target_energy{energy}&target_key={key}&target_valence={valence}&target_tempo={tempo}"
   
   response3 = requests.get(
-    SPOTIFY_GET_SIMILAR_SONGS,
-    # seed_tracks = song,
-    # target_danceability = current_audio_features['danceability'], 
-    # target_energy = current_audio_features['energy'],
-    # target_key = current_audio_features['key'],
-    # target_valence = current_audio_features['valence'],
-    # target_tempo = current_audio_features['tempo'],
+    # SPOTIFY_GET_SIMILAR_SONGS,
+    url,
     headers = {
+      "Content-Type": "application/json",
       "Authorization": f"Bearer {access_token}"
     }   
   )
   resp3_json = response3.json()
   songData = {}
   for i in range(len(resp3_json['tracks'])):
-    songData[i]['songID'] = resp3_json['tracks']['id']
-    songData[i]['songTitle'] = resp3_json['tracks']['name']
-    songData[i]['songURL'] = resp3_json['tracks']['external_urls']['spotify']
+    songData.append(0)
+    songData[i]['songID'] = resp3_json['tracks'][i]['id']
+    songData[i]['songTitle'] = resp3_json['tracks'][i]['name']
+    songData[i]['songURL'] = resp3_json['tracks'][i]['external_urls']['spotify']
       
   return songData
+  # return resp3_json['tracks'][0]['id']
 
 @app.route('/', methods=['GET'])
 def home():
-  flash('aaron')
+  # flash('aaron')
   # current_track_info = get_current_track(
   #   SPOTIFY_ACCESS_TOKEN
   # )
@@ -108,7 +109,7 @@ def home():
   current_song_data = similar_song(
     SPOTIFY_ACCESS_TOKEN, song, current_audio_features
   )
-  flash(current_audio_features)
+  flash(current_song_data)
   return render_template('home.html')
 
 if __name__ == "__main__":
