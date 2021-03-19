@@ -19,27 +19,34 @@ import logging
 from socketIO_client import SocketIO, LoggingNamespace
 
 sampling_rate = 128  #In hertz
-number_of_channel = 14
+number_of_channel = 5
 realtime_eeg_in_second = 1 #Realtime each ... seconds
 number_of_realtime_eeg = sampling_rate*realtime_eeg_in_second
 socket_port = 8080
 
+# channel_names=[
+# 	"AF3",
+# 	"F7",
+# 	"F3",
+# 	"FC5",
+# 	"T7",
+# 	"P7",
+# 	"O1",
+# 	"O2",
+# 	"P8",
+# 	"T8",
+# 	"FC6",
+# 	"F4",
+# 	"F8",
+# 	"AF4"
+# ]
 channel_names=[
 	"AF3",
-	"F7",
-	"F3",
-	"FC5",
 	"T7",
-	"P7",
-	"O1",
-	"O2",
-	"P8",
+	"Pz",
 	"T8",
-	"FC6",
-	"F4",
-	"F8",
 	"AF4"
-]
+] 
 
 class RealtimeEmotion(object): 
 	"""
@@ -47,7 +54,7 @@ class RealtimeEmotion(object):
 	"""
 
 	# path is set to training data directory
-	def __init__(self, path="./Training Data/", songID): 
+	def __init__(self, path, songID): 
 		"""
 		Initializes training data and their classes.
 		"""
@@ -254,33 +261,33 @@ class RealtimeEmotion(object):
 		try:
 			#Looping to get realtime EEG data from Emotiv EPOC
 		    while True:
-					packet = headset.dequeue()
+							packet = headset.dequeue()
 
-					#Get initial EEG data for all channels
-					if init:
-						for i in range(number_of_channel):eeg_realtime[i,counter]=packet.sensors[channel_names[i]]['value']
-					else:
-						new_data=[packet.sensors[channel_names[i]]['value'] for i in range(number_of_channel)]
-						eeg_realtime=np.insert(eeg_realtime,number_of_realtime_eeg,new_data,axis=1)
-						eeg_realtime=np.delete(eeg_realtime,0,axis=1)
-					
-					#If EEG data have been recorded in ... seconds, then process data to predict emotion
-					if counter == (sampling_rate-1) or counter == (number_of_realtime_eeg-1):
-						t = threading.Thread(target=rte.process_all_data, args=(eeg_realtime,))
-						threads.append(t)
-						t.start()
-						init=False
-						counter=0
+										#Get initial EEG data for all channels
+							if init:
+								for i in range(number_of_channel):eeg_realtime[i,counter]=packet.sensors[channel_names[i]]['value']
+							else:
+								new_data=[packet.sensors[channel_names[i]]['value'] for i in range(number_of_channel)]
+								eeg_realtime=np.insert(eeg_realtime,number_of_realtime_eeg,new_data,axis=1)
+								eeg_realtime=np.delete(eeg_realtime,0,axis=1)
+										
+										#If EEG data have been recorded in ... seconds, then process data to predict emotion
+							if counter == (sampling_rate-1) or counter == (number_of_realtime_eeg-1):
+								t = threading.Thread(target=rte.process_all_data, args=(eeg_realtime,))
+								threads.append(t)
+								t.start()
+								init=False
+								counter=0
 
-					gevent.sleep(0)
-					counter += 1
+							gevent.sleep(0)
+							counter += 1
 
-					for i in range(len(self.songID)):
-						self.emotionScore.append(0)
-						for j in range(10):
-							self.emotionScore[i] = emotion_class
-					indexMaxScore = self.emotionScore.index(min(self.emotionScore))
-					return self.songID[indexMaxScore]
+							for i in range(len(self.songID)):
+								self.emotionScore.append(0)
+								for j in range(10):
+									self.emotionScore[i] = emotion_class
+							indexMaxScore = self.emotionScore.index(min(self.emotionScore))
+							return self.songID[indexMaxScore]
 
 		except KeyboardInterrupt:
 		    headset.close()
@@ -289,6 +296,6 @@ class RealtimeEmotion(object):
 		print(t)
 
 if __name__ == "__main__":
-	rte = RealtimeEmotion()
+	rte = RealtimeEmotion(path="./Training Data/", songID=['62AuGbAkt8Ox2IrFFb8GKV', '2AwZsT3CGlfBngDeA9fAIy', '3yrSvpt2l1xhsV9Em88Pul', '6zC0mpGYwbNTpk9SKwh08f', '4YOJFyjqh8eAcbKFfv88mV', '0elmUoU7eMPwZX1Mw1MnQo', '4bHsxqR3GMrXTxEPLuK5ue', '4W4wYHtsrgDiivRASVOINL', '1JyaAeaXVFnVv5ikwWQVQ4', '1SAkL1mYNJlaqnBQxVZrRl', '7cyBw7bpAOYhzyNv7yqW6y'])
 	rte.main_process()
 	
